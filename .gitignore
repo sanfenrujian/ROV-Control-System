@@ -1,0 +1,66 @@
+# ============================================================
+#  ROV 水下机器人运动控制系统 - Git 忽略规则
+#  MCU: STM32H750VBT6, RTOS: RT-Thread 3.1.5
+# ============================================================
+
+# --- Keil MDK 编译产物 ---
+*.axf
+*.bin
+*.hex
+*.o
+*.d
+*.crf
+*.dep
+*.lst
+*.lnp
+*.htm
+*.build_log.htm
+*.iex
+*.tra
+*.map
+JLinkLog.txt
+*.uvguix.*
+*.uvoptx
+*.scvd
+*.dbgconf
+
+# --- Keil Object 目录 ---
+MDK-ARM/Objects/
+MDK-ARM/Listings/
+MDK-ARM/RTE/
+MDK-ARM/ship/
+
+# --- VS Code ---
+.vscode/
+*.code-workspace
+
+# --- 编译中间文件 ---
+build/
+*.elf
+
+# --- 系统文件 ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- 快捷方式 ---
+*.lnk
+
+# --- IDE 配置文件 ---
+*.eww
+*.ewp
+*.ewt
+*.launch
+
+# --- 不需要的临时文件 ---
+*.tmp
+*.bak
+*.log
+*.swp
+
+# --- 保留 Keil 工程文件 ---
+# !MDK-ARM/ship.uvprojx
+# !MDK-ARM/ship.uvoptx
+
+# --- 保留但不追踪的备份 ---
+# Core/Src/Backup/
