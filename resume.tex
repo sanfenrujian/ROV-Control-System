@@ -1,0 +1,72 @@
+% !TEX TS-program = xelatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass{resume}
+\usepackage{zh_CN-Adobefonts_external} % 中文字体支持
+\usepackage{linespacing_fix}           % 控制章节间距（如果你在 Overleaf 有这个包）
+\usepackage{cite}
+\usepackage{hyperref}                  % 支持超链接
+
+\begin{document}
+\pagenumbering{gobble}
+
+\name{祁翔}
+
+\basicInfo{
+  \email{1198055272@qq.com} \textperiodcentered\ 
+  \phone{18721877346} \textperiodcentered\ 
+  \faGithub\ \url{https://github.com/sanfenrujian/ROV-Control-System} \textperiodcentered\ 
+  求职岗位：嵌入式软件工程师}
+
+\section{\faGraduationCap\ 教育背景}
+\datedsubsection{\textbf{哈尔滨工业大学（威海）}}{2023.09 -- 至今}
+\textit{本科} \quad 电子信息工程
+\begin{itemize}[parsep=0.5ex]
+  \item 主修课程：计算机组成原理、数据结构与算法、计算机系统、数字逻辑电路与系统、电子线路基础
+\end{itemize}
+
+\section{\faCogs\ 专业技能}
+\begin{itemize}[parsep=0.5ex]
+  \item 熟练掌握 C/C++，熟悉 C++11 新特性
+  \item 掌握 Linux 系统编程与网络编程，具备多线程和 Socket 编程经验
+  \item 熟悉 U-Boot 移植、rootfs 制作及字符设备驱动开发
+  \item 精通 STM32 片上资源（时钟、GPIO、定时器、USART、SPI、I2C），具备故障定位与性能调优能力
+  \item 熟练使用 FreeRTOS，精通信号量、互斥量等同步机制，可设计高效多任务系统
+  \item 熟悉示波器、万用表等硬件调试工具，熟练使用 GDB、CMake、Makefile
+\end{itemize}
+
+\section{\faUsers\ 实习经历}
+\datedsubsection{\textbf{上海市禾赛科技有限公司} 上海}{2026.01 -- 2026.03}
+\role{嵌入式软件工程师}{}
+\begin{itemize}
+  \item 基于 STM32G941 平台，使用串口空闲中断 + DMA 技术实现低 CPU 占用的命令行交互系统，显著提升日志输出与参数配置的实时性
+  \item 深度集成芯片内置 USBPD 控制器，开发完整充电协议栈，实现双角色端口（DRP）功能，完成 PD 握手与电压切换应用开发
+  \item 熟悉瑞芯微 ISP30 Pipeline 和 Tuner 工具，参与 AWB 标定，提升不同色温下的色彩还原准确性；通过参数调优解决伪影问题，提升图像主客观质量
+  \item 使用 Python/C++ 开发多款自动化测试脚本，参与图像主观与客观测试
+\end{itemize}
+
+\section{\faHeartO\ 项目经历}
+\datedsubsection{\textbf{水下矢量推动 ROV —— 中国水下航行器设计大赛}}{2025.03 -- 2025.07}
+\role{电控组成员}{FreeRTOS + STM32 + Raspberry Pi}
+\begin{itemize}
+  \item 负责水下机器人运动控制系统，使用 FreeRTOS 划分串口收发、运动控制等多任务，通过队列集和互斥锁保证 IMU 数据原子性
+  \item 运用 I2C、ADC、USART、DMA 等外设采集 JY901B IMU、深度传感器、PH 值等数据
+  \item 通过串口 + 中断 + 自定义协议实现手柄数据可靠传输，并使用定时器进行失控保护
+  \item 在树莓派上使用 Linux Socket 与 PC 端 Qt 进行网络通信，并使用 QSS 美化界面
+  \item 开源代码仓库：\url{https://github.com/sanfenrujian/ROV-Control-System}
+\end{itemize}
+
+\datedsubsection{\textbf{基于 XV6 的类 Unix 操作系统}}{2025.09 -- 2026.11}
+\role{项目负责人}{QEMU + C + 操作系统原理} 
+\begin{itemize}
+  \item 在 QEMU 上模拟 E1000 网口驱动，实现数据收发功能
+  \item 基于写时复制（COW）思想优化 fork() 系统调用，加深对虚拟内存和页表的理解
+  \item 优化 xv6 inode 文件系统，提升对 Linux 文件系统的理解
+  \item 实现 Alarm 等系统调用，深入理解内核态/用户态切换及 trap 机制
+\end{itemize}
+
+\section{\faHeartO\ 获奖情况}
+\datedline{\textit{英语四级 635 分，英语六级 630 分}}{高分通过}
+\datedline{多次获得学校一等、二等人民奖学金}{}
+
+\end{document}
