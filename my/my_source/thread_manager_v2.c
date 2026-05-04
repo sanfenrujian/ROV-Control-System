@@ -20,6 +20,7 @@
 #include "motion_control_v2.h"
 #include "pid_controller.h"
 #include "sw_i2c.h"
+#include "ota.h"                     /* OTA 在线升级 */
 
 #include "main.h"
 #include "gpio.h"
@@ -31,6 +32,11 @@
 
 #include <stdio.h>
 #include <string.h>
+
+/* ========================== OTA 相关 ========================== */
+static uint32_t ota_trigger_tick = 0;   /* OTA 触发计时 */
+#define OTA_TRIGGER_DELAY   3000        /* 长按 3 秒进入 OTA (tick数) */
+#define OTA_BUFFER_SIZE     64          /* OTA 帧接收缓冲 */
 
 /* ========================== 全局运动控制器实例 ========================== */
 static motion_ctrl_t g_mc;
@@ -342,6 +348,9 @@ static void thread_motion_ctrl(void *param)
     /* 电机解锁逻辑 */
     uint8_t motors_locked = 1;
 
+    /* 初始化 OTA 模块 */
+    ota_init(115200);
+
     while (1)
     {
         /* 检查遥控器解锁信号（ch8 > 0.8 表示解锁） */
@@ -350,6 +359,84 @@ static void thread_motion_ctrl(void *param)
             motors_locked = 0;
             g_sys.flags.motors_armed = 1;
             rt_kprintf("[CTRL] Motors ARMED\r\n");
+        }
+
+        /* ====== OTA 触发检测 ======
+         * 安全策略：ch7 拉低 (油门最低) 持续 3 秒进入 OTA 模式
+         * 防止水中误触发导致失联
+         */
+        if (g_sys.remote.ch7 < 0.2f)
+        {
+            if (ota_trigger_tick == 0)
+                ota_trigger_tick = rt_tick_get();
+            else if (rt_tick_get() - ota_trigger_tick >
+                     rt_tick_from_millisecond(OTA_TRIGGER_DELAY))
+            {
+                rt_kprintf("[OTA] Triggered! Entering OTA mode...\r\n");
+                motors_locked = 1;
+                g_sys.flags.motors_armed = 0;
+
+                /* 停止电机输出 */
+                __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
+                __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 1500);
+                __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1500);
+
+                /* 进入 OTA 接收模式 */
+                ota_start();
+
+                rt_kprintf("[OTA] Send firmware via USART2 now...\r\n");
+                rt_kprintf("[OTA] Protocol: AA 55 CMD LEN_H LEN_L [DATA...] CHK\r\n");
+
+                /* OTA 接收循环 */
+                uint8_t ota_buf[OTA_BUFFER_SIZE];
+                while (ota_get_state() < OTA_STATE_COMPLETE &&
+                       ota_get_state() != OTA_STATE_ERROR)
+                {
+                    /* 从 USART2 读取一帧 */
+                    uint16_t rx_len = 0;
+                    for (int i = 0; i < OTA_BUFFER_SIZE; i++)
+                    {
+                        if (HAL_UART_Receive(&huart2, &ota_buf[i], 1, 10) == HAL_OK)
+                        {
+                            rx_len = i + 1;
+                            /* 检测帧尾 (最后一个字节是校验和, 帧头已知) */
+                            if (rx_len >= 5 && ota_buf[0] == OTA_SYNC_BYTE1)
+                            {
+                                uint16_t dlen = ota_buf[3] | ((uint16_t)ota_buf[4] << 8);
+                                if (rx_len >= 5 + dlen + 1)
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            break; /* 超时 */
+                        }
+                    }
+
+                    if (rx_len > 0)
+                    {
+                        uint8_t ack = ota_process_frame(ota_buf, rx_len);
+                        /* 回复应答 */
+                        uint8_t resp[] = { OTA_SYNC_BYTE1, OTA_SYNC_BYTE2, ack, 0 };
+                        HAL_UART_Transmit(&huart2, resp, 4, 10);
+                    }
+
+                    rt_thread_mdelay(10);
+                }
+
+                /* OTA 完成或出错，看门狗或手动复位 */
+                if (ota_get_state() == OTA_STATE_ERROR)
+                {
+                    rt_kprintf("[OTA] FAILED! Reset to retry.\r\n");
+                    HAL_Delay(3000);
+                }
+
+                ota_trigger_tick = 0;
+            }
+        }
+        else
+        {
+            ota_trigger_tick = 0;  /* 复位计时 */
         }
 
         /* 电机未解锁时使用失效保护 */
