@@ -45,6 +45,17 @@
 | MODE_HEADING_HOLD | 航向锁定 |
 | MODE_FAILSAFE | 失效保护 |
 
+### 遥控通道约定
+
+- `ch8`: 电机解锁
+- `ch9`: 定深保持
+- `ch10`: 航向锁定
+- `ch4`: 偏航/航向修正
+
+### 运动控制优化说明
+
+`docs/MOTION_CONTROL_OPTIMIZATION.md` 记录了本次 v2 运动控制优化的通道约定、模式优先级、双垂向推进器分配和航向估计回退策略。
+
 ## 编译
 
 ### Keil MDK

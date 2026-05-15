@@ -61,6 +61,7 @@ typedef struct {
     /* --- 目标值 --- */
     float target_depth;       /* 目标深度 (m) */
     float target_heading;     /* 目标航向 (度) */
+    float heading_estimate;   /* 当前航向估计 (度) */
 
     /* --- 电机输出 --- */
     float m1_pwm;             /* 左推进器 PWM */
@@ -75,6 +76,7 @@ typedef struct {
     /* --- 控制时间 --- */
     uint32_t last_tick;       /* 上次控制周期 tick */
     float    dt;              /* 控制周期 (秒) */
+    uint8_t  heading_has_absolute; /* 当前是否有绝对航向输入 */
 } motion_ctrl_t;
 
 /* ========================== API ========================== */

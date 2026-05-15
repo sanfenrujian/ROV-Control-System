@@ -32,6 +32,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 /* ========================== OTA 相关 ========================== */
 static uint32_t ota_trigger_tick = 0;   /* OTA 触发计时 */
@@ -41,6 +42,52 @@ static uint32_t ota_trigger_tick = 0;   /* OTA 触发计时 */
 /* ========================== 全局运动控制器实例 ========================== */
 static motion_ctrl_t g_mc;
 static ms5837_dev_t  g_ms5837_dev;
+
+static float jy901b_word_to_deg(uint16_t raw)
+{
+    return (float)((int16_t)raw) * 180.0f / 32768.0f;
+}
+
+static void sync_legacy_attitude_bridge(void)
+{
+    g_sys.jy901b.pitch = jy901b_word_to_deg(jy901b.st_data.pitch);
+    g_sys.jy901b.roll  = jy901b_word_to_deg(jy901b.st_data.roll);
+    g_sys.jy901b.yaw   = jy901b_word_to_deg(jy901b.st_data.yaw);
+    g_sys.jy901b.temp  = (float)((int16_t)jy901b_t.st_data.temp) / 100.0f;
+
+    if (fabsf(g_sys.jy901b.pitch) > 0.001f ||
+        fabsf(g_sys.jy901b.roll)  > 0.001f ||
+        fabsf(g_sys.jy901b.yaw)   > 0.001f)
+    {
+        g_sys.imu.pitch = g_sys.jy901b.pitch;
+        g_sys.imu.roll  = g_sys.jy901b.roll;
+        g_sys.imu.yaw   = g_sys.jy901b.yaw;
+    }
+}
+
+static void sync_legacy_compat_state(void)
+{
+    send_angle.st_data.leftangle      = g_sys.servo.left_angle;
+    send_angle.st_data.rightangle     = g_sys.servo.right_angle;
+    send_angle.st_data.back_leftangle = g_sys.servo.back_left_angle;
+    send_angle.st_data.back_upangle   = g_sys.servo.back_up_angle;
+
+    true_depth.st_data.true_depth = g_sys.depth.true_depth;
+
+    ms5837.st_data.pressure   = g_sys.depth_sensor.pressure_mbar;
+    ms5837.st_data.water_temp = g_sys.depth_sensor.temperature;
+
+    PS_2.st_data.ch1 = g_sys.remote.ch1;
+    PS_2.st_data.ch2 = g_sys.remote.ch2;
+    PS_2.st_data.ch3 = g_sys.remote.ch3;
+    PS_2.st_data.ch4 = g_sys.remote.ch4;
+    PS_2.st_data.ch5 = g_sys.remote.ch5;
+    PS_2.st_data.ch6 = g_sys.remote.ch6;
+    PS_2.st_data.ch7 = g_sys.remote.ch7;
+    PS_2.st_data.ch8 = g_sys.remote.ch8;
+    PS_2.st_data.ch9 = (uint8_t)(g_sys.remote.ch9 > 1.5f);
+    PS_2.st_data.ch10 = (uint8_t)(g_sys.remote.ch10 > 1.5f);
+}
 
 /* ========================== 向后兼容：旧代码所需的全局变量 ========================== */
 /*
@@ -148,6 +195,7 @@ static void thread_imu(void *param)
          *                      &g_sys.imu.roll, &g_sys.imu.yaw);
          * 当前从 JY901B 获取姿态数据
          */
+        sync_legacy_attitude_bridge();
 
         rt_thread_mdelay(50);
     }
@@ -188,12 +236,12 @@ static void thread_depth(void *param)
             g_sys.depth_sensor.pressure_mbar = result.pressure_mbar;
             g_sys.depth_sensor.temperature   = result.temperature;
 
-            g_sys.depth.true_depth = result.depth_m;
+            g_sys.depth.true_depth = result.depth_m - g_sys.depth.offset;
 
             /* 校准目标深度（首次有效读数） */
             if (g_sys.depth.target_depth < 0.01f)
             {
-                g_sys.depth.target_depth = result.depth_m;
+                g_sys.depth.target_depth = g_sys.depth.true_depth;
             }
         }
 
@@ -400,6 +448,7 @@ static void thread_motion_ctrl(void *param)
                         {
                             rx_len = i + 1;
                             /* 检测帧尾 (最后一个字节是校验和, 帧头已知) */
+                            //at least 5 bytes for header + cmd + len + checksum
                             if (rx_len >= 5 && ota_buf[0] == OTA_SYNC_BYTE1)
                             {
                                 uint16_t dlen = ota_buf[3] | ((uint16_t)ota_buf[4] << 8);
@@ -452,6 +501,11 @@ static void thread_motion_ctrl(void *param)
                 if (g_sys.mode != MODE_DEPTH_HOLD)
                     motion_ctrl_set_mode(&g_mc, MODE_DEPTH_HOLD);
             }
+            else if (g_sys.remote.ch10 > 1.5f) /* ch10 > 1.5: 航向锁定 */
+            {
+                if (g_sys.mode != MODE_HEADING_HOLD)
+                    motion_ctrl_set_mode(&g_mc, MODE_HEADING_HOLD);
+            }
             else  /* 手动模式 */
             {
                 if (g_sys.mode != MODE_MANUAL)
@@ -464,6 +518,7 @@ static void thread_motion_ctrl(void *param)
 
         /* 写入硬件 */
         motion_ctrl_apply_output(&g_mc);
+        sync_legacy_compat_state();
 
         rt_thread_mdelay(20);  /* 50Hz 控制频率 */
     }

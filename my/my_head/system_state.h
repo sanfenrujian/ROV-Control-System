@@ -59,10 +59,10 @@ typedef struct {
     float ch4;  /* 通道4: 转向 */
     float ch5;  /* 通道5: 备用 */
     float ch6;  /* 通道6: 备用 */
-    float ch7;  /* 通道7: 备用 */
-    float ch8;  /* 通道8: 模式切换 */
-    float ch9;  /* 通道9: 定深使能 */
-    float ch10; /* 通道10: 待机使能 */
+    float ch7;  /* 通道7: OTA 触发 */
+    float ch8;  /* 通道8: 电机解锁 */
+    float ch9;  /* 通道9: 定深保持使能 */
+    float ch10; /* 通道10: 航向锁定使能 */
 } remote_data_t;
 
 /** 超声波传感器数据 */
